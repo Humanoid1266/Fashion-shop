@@ -8,7 +8,7 @@ import { formatCurrency } from "../utils/formatCurrency";
 import { SHIPPING_FEE } from "../utils/constants";
 import useCartStore from "../stores/cartStore";
 
-const IMG_BASE = "http://127.0.0.1:8000/storage/";
+const IMG_BASE = `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000"}/storage/`;
 
 
 
