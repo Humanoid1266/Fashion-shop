@@ -4,7 +4,8 @@ Hệ thống thương mại điện tử bán quần áo thời trang nam/nữ, 
 
 ## 🔗 Live Demo
 
-- 🛍️ **Website:** https://fashionshop-web-s4av.onrender.com
+- 🛍️ **Website (khách):** https://fashionshop-web-s4av.onrender.com
+- 🔐 **Trang quản trị:** https://fashionshop-admin.onrender.com — đăng nhập demo: `admin@fashionshop.vn` / `Admin@123`
 - 🔌 **API:** https://fashion-shop-4wds.onrender.com/api/v1/products
 
 > ⚠️ API chạy trên gói free của Render nên "ngủ" sau ~15 phút không truy cập — lần tải đầu có thể mất ~30–50 giây để đánh thức, sau đó sẽ nhanh bình thường.
@@ -26,6 +27,7 @@ Hệ thống thương mại điện tử bán quần áo thời trang nam/nữ, 
 11. [CI/CD & SonarCloud](#11-cicd--sonarcloud)
 12. [Postman Collection](#12-postman-collection)
 13. [Database Schema](#13-database-schema)
+14. [Deployment (Production)](#14-deployment-production)
 
 ---
 
@@ -139,7 +141,7 @@ FashionShop gồm 3 ứng dụng độc lập giao tiếp qua REST API:
               └──────────────┬─────────────────┘
                              │
               ┌──────────────▼─────────────────┐
-              │     MySQL 8 (Clever Cloud)      │
+              │            MySQL 8              │
               └─────────────────────────────────┘
 ```
 
@@ -352,17 +354,21 @@ FILESYSTEM_DISK=local
 
 > `APP_URL` phải khớp với địa chỉ thực tế của API. Nếu dùng `php artisan serve` → `http://127.0.0.1:8000`.
 
-### Frontend axios config
+### Frontend — biến môi trường
 
-`fashionshop-web/src/api/axios.js`:
-```js
-baseURL: "http://127.0.0.1:8000/api/v1"
+Cả hai frontend đọc địa chỉ API qua biến build-time `VITE_API_URL`. Nếu không set, mặc định trỏ về `http://127.0.0.1:8000` (dev local).
+
+```env
+# fashionshop-web/.env & fashionshop-admin/.env
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
-`fashionshop-admin/src/api/axios.js`:
+Base URL được dựng trong `src/api/axios.js`:
 ```js
-baseURL: "http://127.0.0.1:8000/api/v1/admin"
+baseURL: `${import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000"}/api/v1`
 ```
+
+> Khi deploy, chỉ cần đặt `VITE_API_URL` = URL API thật (vd trên Render) là frontend tự trỏ đúng — không cần sửa code.
 
 ---
 
@@ -813,4 +819,46 @@ contacts
 
 ---
 
-*Được xây dựng với Laravel 11 + React 19*
+## 14. Deployment (Production)
+
+Toàn bộ hệ thống được deploy **miễn phí** và chạy 24/7, độc lập với máy local.
+
+```
+   Render Static Site          Render Static Site
+   fashionshop-web             fashionshop-admin
+   (Vite build → CDN)          (Vite build → CDN)
+           │                           │
+           └─────────────┬─────────────┘
+                         │  HTTPS  (VITE_API_URL)
+              ┌──────────▼───────────┐
+              │   Render Web Service  │
+              │   fashionshop-api     │
+              │   Docker (PHP 8.3)    │
+              └──────────┬───────────┘
+                         │  SSL/TLS
+              ┌──────────▼───────────┐
+              │   Aiven MySQL 8       │
+              │   (Free 1GB)          │
+              └──────────────────────┘
+```
+
+| Thành phần | Nền tảng | Ghi chú |
+|---|---|---|
+| API (Laravel) | Render — Web Service (Docker) | Build từ `fashionshop-api/Dockerfile`; entrypoint tự chạy `migrate` + `artisan serve` |
+| Storefront | Render — Static Site | Build Vite → phục vụ qua CDN, luôn bật |
+| Admin | Render — Static Site | Build Vite → phục vụ qua CDN, luôn bật |
+| Database | Aiven — MySQL 8 (Free 1GB) | Kết nối bắt buộc SSL/TLS |
+
+**Điểm cấu hình khi deploy:**
+
+- Frontend đọc URL API qua biến build-time `VITE_API_URL` → không hardcode.
+- API kết nối DB qua các biến `DB_*` và `MYSQL_ATTR_SSL_CA` (chứng chỉ CA của Aiven, commit kèm image).
+- `config/cors.php` mở CORS cho request cross-origin từ frontend.
+- Static Site cấu hình rewrite `/* → /index.html` để React Router hoạt động khi reload trang con.
+- Container bind cổng động qua `${PORT}` do Render cấp.
+
+> Gói free của Render cho Web Service sẽ "ngủ" sau ~15 phút không có truy cập; request đầu tiên sau đó mất ~30–50s để đánh thức, sau đó chạy bình thường.
+
+---
+
+*Được xây dựng với Laravel 11 + React 19 · Deploy trên Render + Aiven*
