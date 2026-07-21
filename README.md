@@ -2,6 +2,13 @@
 
 Hệ thống thương mại điện tử bán quần áo thời trang nam/nữ, xây dựng theo kiến trúc **API-first** với backend Laravel và hai frontend React riêng biệt.
 
+## 🔗 Live Demo
+
+- 🛍️ **Website:** https://fashionshop-web-s4av.onrender.com
+- 🔌 **API:** https://fashion-shop-4wds.onrender.com/api/v1/products
+
+> ⚠️ API chạy trên gói free của Render nên "ngủ" sau ~15 phút không truy cập — lần tải đầu có thể mất ~30–50 giây để đánh thức, sau đó sẽ nhanh bình thường.
+
 ---
 
 ## Mục lục
