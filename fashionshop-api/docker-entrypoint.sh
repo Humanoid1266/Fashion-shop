@@ -16,4 +16,4 @@ php artisan route:cache
 # Chạy migration
 php artisan migrate --no-interaction --force
 
-exec php artisan serve --host=0.0.0.0 --port=8000
+exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
